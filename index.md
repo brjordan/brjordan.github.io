@@ -7,20 +7,28 @@ Can I embed a YouTube video?
   </iframe>
 </div>
 
-Did that work?
 
 Here's a JPG:
 
 ![A JPG image](https://brjordan.github.io/media/b.jpg)
 
+
 Here's a GIF:
 
 ![A GIF image](https://brjordan.github.io/media/radioBoxes.gif)
 
+
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4" preload autoplay loop></video>
+<div class="video-container">
+  <video src="media/headsplode(hangouts).mp4" controls loop>
+  </video>
+</div>
+
 
 Here's a WEBM:
 
-<video src="media/brodyNodFixLQ4.webm" controls preload></video>
+<div class="video-container">
+  <video src="media/brodyNodFixLQ4.webm" controls preload loop>
+  </video>
+</div>
