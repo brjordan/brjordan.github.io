@@ -8,3 +8,9 @@ Can I embed a YouTube video?
 </div>
 
 Did that work?
+
+Here's a JPG:
+![A JPG image](https://brjordan.github.io/media/b.jpg)
+
+Here's a GIF:
+![A GIF image](https://brjordan.github.io/media/radioBoxes.gif)
