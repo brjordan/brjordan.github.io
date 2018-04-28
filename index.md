@@ -19,8 +19,8 @@ Here's a GIF:
 
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4">
+<video src="media/headsplode(hangouts).mp4"></video>
 
 Here's a WEBM:
 
-<video src="media/brodyNodFixLQ4.webm" controls preload>
+<video src="media/brodyNodFixLQ4.webm" controls preload></video>
