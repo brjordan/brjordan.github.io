@@ -10,7 +10,17 @@ Can I embed a YouTube video?
 Did that work?
 
 Here's a JPG:
+
 ![A JPG image](https://brjordan.github.io/media/b.jpg)
 
 Here's a GIF:
+
 ![A GIF image](https://brjordan.github.io/media/radioBoxes.gif)
+
+Here's an MP4:
+
+![An MP4 video](https://brjordan.github.io/media/headsplode(hangouts).mp4)
+
+Here's a WEBM:
+
+![A WEBM video](https://brjordan.github.io/media/brodyNodFixLQ4.webm)
