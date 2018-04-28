@@ -19,7 +19,7 @@ Here's a GIF:
 
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4"></video>
+<video src="media/headsplode(hangouts).mp4" preload autoplay loop></video>
 
 Here's a WEBM:
 
