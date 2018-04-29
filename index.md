@@ -20,7 +20,7 @@ Here's a GIF:
 
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4" preload="auto" loop muted width="100%" height="auto" onclick="playPause();"></video>
+<video src="media/headsplode(hangouts).mp4" preload="auto" loop muted width="100%" height="auto"></video>
 
 
 Here's a WEBM:
