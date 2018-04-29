@@ -20,9 +20,9 @@ Here's a GIF:
 
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4" preload loop></video>
+<video src="media/headsplode(hangouts).mp4" controls loop></video>
 
 
 Here's a WEBM:
 
-<video src="media/brodyNodFixLQ4.webm" controls loop></video>
+<video src="media/brodyNodFixLQ4.webm" preload loop></video>
