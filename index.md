@@ -20,9 +20,19 @@ Here's a GIF:
 
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4" preload="metadata" loop controls width="100%" height="auto"></video>
+<video src="media/headsplode(hangouts).mp4" preload="metadata" loop controls width="100%" height="100%" onclick="if(this.paused){
+        this.play();
+    }else{
+        this.pause();
+    }">
+</video>
 
 
 Here's a WEBM:
 
-<video src="media/brodyNodFixLQ4.webm" preload="auto" loop width="100%" height="auto" onclick="this.play();"></video>
+<video src="media/brodyNodFixLQ4.webm" preload="auto" loop width="100%" height="auto" onclick="if(this.paused){
+        this.play();
+    }else{
+        this.pause();
+    }">
+</video>
