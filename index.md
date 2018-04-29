@@ -20,7 +20,7 @@ Here's a GIF:
 
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4" preload="auto" loop onclick="if(this.paused){
+<video src="media/headsplode(hangouts).mp4" preload="auto" autoplay loop width="100%" height="auto" onclick="if(this.paused){
         this.play();
     }else{
         this.pause();
