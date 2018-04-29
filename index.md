@@ -19,7 +19,7 @@ How about an ultrawide YouTube video?
 How about a 4:3 aspect ratio YouTube video?
 
 <div class="video-container-youtube-4x3">
-  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/VBDLIP3HGy8?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/KPXiQSYUtSs?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
   </iframe>
 </div>
 
