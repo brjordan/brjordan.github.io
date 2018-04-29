@@ -2,7 +2,7 @@
 
 Can I embed a YouTube video?
 
-<div class="video-container">
+<div class="video-container-youtube-16x9">
   <iframe src="https://www.youtube-nocookie.com/embed/mEi8m55-Zdk?rel=0" height="315" width="560" allowfullscreen="" frameborder="0">
   </iframe>
 </div>
@@ -20,15 +20,9 @@ Here's a GIF:
 
 Here's an MP4:
 
-<div class="video-container">
-  <video src="media/headsplode(hangouts).mp4" controls loop>
-  </video>
-</div>
+<video src="media/headsplode(hangouts).mp4" onclick=playPause() preload loop></video>
 
 
 Here's a WEBM:
 
-<div class="video-container">
-  <video src="media/brodyNodFixLQ4.webm" controls preload loop>
-  </video>
-</div>
+<video src="media/brodyNodFixLQ4.webm" controls loop></video>
