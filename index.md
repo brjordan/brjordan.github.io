@@ -20,19 +20,26 @@ Here's a GIF:
 
 Here's an MP4:
 
-<video src="media/headsplode(hangouts).mp4" preload="metadata" loop controls width="100%" height="100%" onclick="if(this.paused){
-        this.play();
-    }else{
-        this.pause();
-    }">
+<video src="media/headsplode(hangouts).mp4" preload="auto" loop controls width="100%" height="100%" onclick="playPause();">
 </video>
 
 
 Here's a WEBM:
 
-<video src="media/brodyNodFixLQ4.webm" preload="auto" loop width="100%" height="auto" onclick="if(this.paused){
+<video src="media/brodyNodFixLQ4.webm" preload="auto" loop onclick="if(this.paused){
         this.play();
     }else{
         this.pause();
     }">
 </video>
+
+
+<script>
+  function playPause(){
+    if(this.paused){
+        this.play();
+    }else{
+        this.pause();
+    }
+  }
+</script>
