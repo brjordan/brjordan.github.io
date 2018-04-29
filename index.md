@@ -25,4 +25,4 @@ Here's an MP4:
 
 Here's a WEBM:
 
-<video src="media/brodyNodFixLQ4.webm" controls loop></video>
+<video src="media/brodyNodFixLQ4.webm" preload="auto" loop muted width="100%" height="auto" onclick="playPause();"></video>
