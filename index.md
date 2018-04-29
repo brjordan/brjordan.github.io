@@ -26,8 +26,3 @@ Here's an MP4:
 Here's a WEBM:
 
 <video src="media/brodyNodFixLQ4.webm" preload="auto" loop width="100%" height="auto" onclick="this.play();"></video>
-
-
-<script>
-  
-</script>
