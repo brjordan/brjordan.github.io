@@ -24,7 +24,7 @@ How about a 4:3 aspect ratio YouTube video?
 </div>
 
 
-<a href="https://brjordan.github.io/webgl_in_one_file.html">WebGl Demo</a>
+<a href="https://brjordan.github.io/webgl_in_one_file.html">WebGL Demo</a>
 
 
 Here's a JPG:
