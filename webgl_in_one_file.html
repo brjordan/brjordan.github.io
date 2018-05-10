@@ -5,6 +5,13 @@
 <head>	
 <title>webgl in one file</title>
 <meta charset="utf-8">
+<!-- set display resoltuion -->
+<style>
+canvas {
+	width: 640px;
+	height: 480px;
+}
+</style>
 </head>
 
 <!-- hopefully your text editor supports code folding -->
@@ -6902,30 +6909,37 @@ var forEach = exports.forEach = function () {
 
 <script id="script_vert" type="unofficial_webgl_shader_type/vertex_shader">
 attribute vec4 aVertexPosition;
-attribute vec4 aVertexColor;
+attribute vec2 aTextureCoord;
 
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
-varying lowp vec4 vColor;
+varying highp vec2 vTextureCoord;
 
 void main() {
   gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-  vColor = aVertexColor;
+  vTextureCoord = aTextureCoord;
 }
 </script>
 
 <script id="script_frag" type="unofficial_webgl_shader_type/fragment_shader">
-varying lowp vec4 vColor;
+varying highp vec2 vTextureCoord;
+
+uniform sampler2D uSampler;
 
 void main() {
-  gl_FragColor = vColor;
+  gl_FragColor = texture2D(uSampler, vTextureCoord);
 }
 </script>
 
 <script id="script_main" type="text/javascript">
 //variable to control the rotation of the square
 var cube_rotation = 0.0;
+
+function is_pow_of_2(val) {
+	//e.g. 0b100 & 0b011 = 0b000
+	return (val & (val - 1)) == 0;
+}
 
 function compile_shader(gl, id) {
 	//find shader by html element id
@@ -6990,7 +7004,7 @@ function init_shader_program(gl, vert_id, frag_id) {
 function init_buffers(gl) {
 	//create buffers
 	const position_buffer = gl.createBuffer();
-	const color_buffer = gl.createBuffer();
+	const texcoord_buffer = gl.createBuffer();
 	const index_buffer = gl.createBuffer();
 	
 	//vertex data
@@ -7032,22 +7046,39 @@ function init_buffers(gl) {
 		-1.0,  1.0, -1.0
 	];
 	
-	//color data
-	const faceColors = [
-		[1.0,  1.0,  1.0,  1.0],
-		[1.0,  0.0,  0.0,  1.0],
-		[0.0,  1.0,  0.0,  1.0],
-		[0.0,  0.0,  1.0,  1.0],
-		[1.0,  1.0,  0.0,  1.0],
-		[1.0,  0.0,  1.0,  1.0]
-	];
-	// Convert the array of colors into a table for all the vertices.
-	var colors = [];
-	for (var i = 0; i < faceColors.length; i++) {
-		const c = faceColors[i];
-		// Repeat each color four times for the four vertices of the face
-		colors = colors.concat(c, c, c, c);
-	}
+	//texcoord data
+	const texcoords = [
+		// Front
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Back
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Top
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Bottom
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Right
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Left
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0
+	];	
 	
 	const indices = [
 		0,  1,  2,      0,  2,  3, 
@@ -7066,12 +7097,12 @@ function init_buffers(gl) {
 		new Float32Array(positions), 
 		gl.STATIC_DRAW
 	);
-	//set color buffer as current vertex buffer
-	gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+	//set texcoord buffer as current vertex buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, texcoord_buffer);
 	//send color data to current vertex buffer
 	gl.bufferData(
 		gl.ARRAY_BUFFER, 
-		new Float32Array(colors), 
+		new Float32Array(texcoords), 
 		gl.STATIC_DRAW
 	);
 	//set index buffer as current index buffer
@@ -7086,15 +7117,83 @@ function init_buffers(gl) {
 	//return dictionary of created buffers
 	return {
 		position: position_buffer, 
-		color: color_buffer, 
+		texcoord: texcoord_buffer, 
 		indices: index_buffer
 	};
 }
 
-function draw_scene(gl, program_info, buffers, delta_time) {
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);	//background clear color
+function load_tex(gl, path) {
+	//create texture object
+	const tex_obj = gl.createTexture();
+	//set texture object as current texture
+	gl.bindTexture(gl.TEXTURE_2D, tex_obj);
+	
+	//setup placeholder texture data
+	const lod = 0;							//base LoD
+	const internal_format = gl.RGBA;		//use RGBA
+	const width = 2;						//px width
+	const height = 2;						//px height
+	const border = 0;						//px border
+	const source_format = gl.RGBA;			//texel format same as image format
+	const source_type = gl.UNSIGNED_BYTE;	//texel datatype
+	//placeholder texture pixel data
+	const pixels = new Uint8Array([
+		255, 0, 255, 255, 
+		0, 0, 0, 255, 
+		0, 0, 0, 255, 
+		255, 0, 255, 255
+	]);
+	//load placeholder texture data into current texture
+	gl.texImage2D(
+		gl.TEXTURE_2D, 
+		lod, 
+		internal_format, 
+		width, 
+		height, 
+		border, 
+		source_format, 
+		source_type, 
+		pixels
+	);
+	
+	//create image object
+	const img_obj = new Image();
+	//define checks to perform on image once loaded
+	img_obj.onload = function() {
+		//set texture object as current texture
+		gl.bindTexture(gl.TEXTURE_2D, tex_obj);
+		//load image data into current texture
+		gl.texImage2D(
+			gl.TEXTURE_2D, 
+			lod, 
+			internal_format, 
+			source_format, 
+			source_type, 
+			img_obj
+		);
+		
+		//check if image dimensions are powers of 2
+		if (is_pow_of_2(img_obj.width) && is_pow_of_2(img_obj.height)) {
+			//generate mipmap for current texture
+			gl.generateMipmap(gl.TEXTURE_2D);
+		} else {
+			//set irregularly dimensioned texture settings for current texture
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		}
+	};
+	//load image data into image object from path
+	img_obj.src = path;
+	
+	return tex_obj;	
+}
+
+function draw_scene(gl, program_info, buffers, tex, delta_time) {
+	gl.clearColor(0.4, 0.4, 0.3, 1.0);	//background clear color
 	gl.clearDepth(1.0);					//clear everything when clearing
 	gl.enable(gl.DEPTH_TEST);			//consider depth when drawing
+	gl.enable(gl.CULL_FACE);			//enable (back)face culling
 	gl.depthFunc(gl.LEQUAL);			//near things obscure far things
 	
 	//clear canvas according to some bitwise-OR'd constants
@@ -7154,18 +7253,18 @@ function draw_scene(gl, program_info, buffers, delta_time) {
 		gl.enableVertexAttribArray(program_info.attrib_locations.vertex_position);
 	}
 	
-	//color buffer -> vertex color attribute instructions
+	//texcoord buffer -> vertex texture coordinate attribute instructions
 	{
-		const vals_per_vert = 4;	//num of values used to represent a color
+		const vals_per_vert = 2;	//num of values used to represent a texcoord set
 		const type = gl.FLOAT;		//data type of those values
 		const normalize = false;	//leave each value as is
 		const stride = 0;			//autocalc value set sizes from 1st 2 params
 		const offset = 0;			//no buffer read offset
-		//set color buffer as current vertex buffer
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+		//set texcoord buffer as current vertex buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texcoord);
 		//connect current vertex buffer to vertex shader attribute
 		gl.vertexAttribPointer(
-			program_info.attrib_locations.vertex_color, 
+			program_info.attrib_locations.texture_coord, 
 			vals_per_vert, 
 			type, 
 			normalize, 
@@ -7173,8 +7272,11 @@ function draw_scene(gl, program_info, buffers, delta_time) {
 			offset
 		);
 		//enable attribute because its disabled by default
-		gl.enableVertexAttribArray(program_info.attrib_locations.vertex_color);
+		gl.enableVertexAttribArray(program_info.attrib_locations.texture_coord);
 	}
+	
+	//set index buffer as current index buffer
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
 	
 	//set shader program as the current program
 	gl.useProgram(program_info.program);
@@ -7191,8 +7293,12 @@ function draw_scene(gl, program_info, buffers, delta_time) {
 		model_view_matrix
 	);
 	
-	//set index buffer as current index buffer
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+	//use texture unit 0
+	gl.activeTexture(gl.TEXTURE0);
+	//set tex as current texture and connect it to current texture unit
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+	//connect texture unit 0 to fragment shader sampler uniform
+	gl.uniform1i(program_info.uniform_locations.u_sampler, 0);
 	
 	{
 		const vertex_count = 36;		//read 36 vertices
@@ -7205,13 +7311,14 @@ function draw_scene(gl, program_info, buffers, delta_time) {
 function main() {
 	//find canvas and assign to const
 	const canvas = document.querySelector("#gl_canvas");
-	//init gl context
-	const gl = canvas.getContext("webgl");
+	//init gl context and disable antialiasing
+	const gl = canvas.getContext("webgl", {antialias: false});
 	//alert on init fail
 	if (!gl) {
 		alert("WebGL init failed.");
 		return;
 	}
+	//enable face culling which defaults to backface culling
 	
 	//fps counter stuff
 	const fps_counter = document.getElementById("fps_counter");
@@ -7223,16 +7330,20 @@ function main() {
 		program: shader_program, 
 		attrib_locations: {
 			vertex_position: gl.getAttribLocation(shader_program, "aVertexPosition"), 
-			vertex_color: gl.getAttribLocation(shader_program, "aVertexColor")
+			texture_coord: gl.getAttribLocation(shader_program, "aTextureCoord")
 		}, 
 		uniform_locations: {
 			projection_matrix: gl.getUniformLocation(shader_program, "uProjectionMatrix"),
-			model_view_matrix: gl.getUniformLocation(shader_program, "uModelViewMatrix")
+			model_view_matrix: gl.getUniformLocation(shader_program, "uModelViewMatrix"),
+			u_sampler: gl.getUniformLocation(shader_program, "uSampler")
 		}
 	};
 	
 	//create dictionary of buffers
 	const buffers = init_buffers(gl);
+	
+	//load texture
+	const tex = load_tex(gl, "media/ffox.png");
 	
 	//variable for calculating delta time
 	var prev_time = 0.0;
@@ -7244,10 +7355,11 @@ function main() {
 		//calculate delta time
 		const delta_time = curr_time - prev_time;
 		prev_time = curr_time;
+		//update fps counter using delta time
 		fps_counter.innerHTML = 1 / delta_time;
 		
 		//draw the scene
-		draw_scene(gl, program_info, buffers, delta_time);
+		draw_scene(gl, program_info, buffers, tex, delta_time);
 		
 		//loop
 		requestAnimationFrame(render);
@@ -7258,7 +7370,9 @@ function main() {
 </script>
 
 <body onload="main();">
-<canvas id="gl_canvas" width="640" height="480"></canvas>
+<!-- create canvas and set internal resolution -->
+<canvas id="gl_canvas" width="360" height="270"></canvas>
+<!-- create fps counter -->
 <p id="fps_counter">?fps?</p>
 </body>
 
