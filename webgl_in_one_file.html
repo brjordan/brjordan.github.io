@@ -1,3 +1,17 @@
+<!-- COPYRIGHT AND LICENSE INFO CAN BE FOUND BETWEEN </HEAD> and <BODY> -->
+<!doctype html>
+<html lang="en">
+<head>
+<title>webgl in one file</title>
+<meta charset="utf-8">
+<!-- set display resoltuion -->
+<style>
+canvas {
+	width: 640px;
+	height: 480px;
+}
+</style>
+</head>
 <!-- COPYRIGHT AND LICENSE 
 
 Copyright (c) 2018, Benjamin Rush Jordan.
@@ -705,26 +719,593 @@ file alongside this program can be found inside of this very file.
 Any references to external files are temporary.
 
 -->
-<!doctype html>
-<html lang="en">
-
-<head>	
-<title>webgl in one file</title>
-<meta charset="utf-8">
-<!-- set display resoltuion -->
-<style>
-canvas {
-	width: 640px;
-	height: 480px;
-}
-</style>
-</head>
-
 <body onload="main();">
 <!-- create canvas and set internal resolution -->
 <canvas id="gl_canvas" width="360" height="270"></canvas>
 <!-- create fps counter -->
 <p id="fps_counter">?fps?</p>
+
+<script id="script_main" type="text/javascript">
+//variable to control the rotation of the square
+var cube_rotation = 0.0;
+
+function main() {
+	//find canvas and assign to const
+	const canvas = document.querySelector("#gl_canvas");
+	//init gl context and disable antialiasing
+	const gl = canvas.getContext("webgl", {antialias: false});
+	//alert on init fail
+	if (!gl) {
+		alert("WebGL init failed.");
+		return;
+	}
+	//enable face culling which defaults to backface culling
+	
+	//fps counter stuff
+	const fps_counter = document.getElementById("fps_counter");
+	
+	//create shader program
+	const shader_program = init_shader_program(gl, "script_vert", "script_frag");
+	//locate shader program info
+	const program_info = {
+		program: shader_program, 
+		attrib_locations: {
+			vertex_position: gl.getAttribLocation(shader_program, "aVertexPosition"), 
+			vertex_normal: gl.getAttribLocation(shader_program, "aVertexNormal"), 
+			texture_coord: gl.getAttribLocation(shader_program, "aTextureCoord")
+		}, 
+		uniform_locations: {
+			projection_matrix: gl.getUniformLocation(shader_program, "uProjectionMatrix"), 
+			model_view_matrix: gl.getUniformLocation(shader_program, "uModelViewMatrix"), 
+			normal_matrix: gl.getUniformLocation(shader_program, "uNormalMatrix"), 
+			u_sampler: gl.getUniformLocation(shader_program, "uSampler")
+		}
+	};
+	
+	//create dictionary of buffers
+	const buffers = init_buffers(gl);
+	
+	//load texture
+	const tex = load_tex(gl, "media/texcoord_test_2.png");
+	
+	//variable for calculating delta time
+	var prev_time = 0.0;
+	//define render loop
+	function render(curr_time) {
+		//millseconds to seconds
+		curr_time *= 0.001;
+		
+		//calculate delta time
+		const delta_time = curr_time - prev_time;
+		prev_time = curr_time;
+		//update fps counter using delta time
+		fps_counter.innerHTML = 1 / delta_time;
+		
+		//draw the scene
+		draw_scene(gl, program_info, buffers, tex, delta_time);
+		
+		//loop
+		requestAnimationFrame(render);
+	}
+	//start render loop
+	requestAnimationFrame(render);	
+}
+
+function init_shader_program(gl, vert_id, frag_id) {
+	//compile vertex and fragment shaders
+	const vert = compile_shader(gl, vert_id);
+	const frag = compile_shader(gl, frag_id);
+	
+	//create shader_program
+	const shader_program = gl.createProgram();
+	//attach vertex and fragment shaders to shader program
+	gl.attachShader(shader_program, vert);
+	gl.attachShader(shader_program, frag);
+	//link shader program
+	gl.linkProgram(shader_program);
+	
+	//alert on shader program link fail
+	if (!gl.getProgramParameter(shader_program, gl.LINK_STATUS)) {
+		alert(
+			"error linking shader program. " + 
+			"\n\n\nsee info log below: \n\n" + 
+			gl.getProgramInfoLog(shader_program)
+		);
+		return null;
+	}
+	
+	//return linked shader program
+	return shader_program;
+}
+
+function compile_shader(gl, id) {
+	//find shader by html element id
+	var shader_script = document.getElementById(id);
+	//validate shader was found
+	if (!shader_script) {
+		return null;
+	}
+	
+	//make shader obj based on shader type
+	var shader_obj = null;
+	if (shader_script.type.endsWith("vertex_shader")) {
+		shader_obj = gl.createShader(gl.VERTEX_SHADER);
+	} else if (shader_script.type.endsWith("fragment_shader")) {
+		shader_obj = gl.createShader(gl.FRAGMENT_SHADER);	
+	}
+	
+	//get shader source and compile
+	gl.shaderSource(shader_obj, shader_script.innerHTML);
+	gl.compileShader(shader_obj);
+	
+	//alert on shader compile fail
+	if (!gl.getShaderParameter(shader_obj, gl.COMPILE_STATUS)) {
+		alert("error compiling shader of type: \n" + 
+			shader_script.type + 
+			"\n\n\nsee info log below: \n\n" + 
+			gl.getShaderInfoLog(shader_obj));
+		return null;
+	}
+	
+	//return compiled shader
+	return shader_obj;
+}
+
+function init_buffers(gl) {
+	//create buffers
+	const position_buffer = gl.createBuffer();
+	const normal_buffer = gl.createBuffer();
+	const texcoord_buffer = gl.createBuffer();
+	const index_buffer = gl.createBuffer();
+	
+	//vertex position data
+	const positions = [
+		// Front face
+		-1.0, -1.0, 1.0,
+		1.0, -1.0, 1.0,
+		1.0, 1.0, 1.0,
+		-1.0, 1.0, 1.0,
+		// Back face
+		-1.0, -1.0, -1.0,
+		-1.0, 1.0, -1.0,
+		1.0, 1.0, -1.0,
+		1.0, -1.0, -1.0,
+		// Top face
+		-1.0, 1.0, -1.0,
+		-1.0, 1.0, 1.0,
+		1.0, 1.0, 1.0,
+		1.0, 1.0, -1.0,
+		// Bottom face
+		-1.0, -1.0, -1.0,
+		1.0, -1.0, -1.0,
+		1.0, -1.0, 1.0,
+		-1.0, -1.0, 1.0,
+		// Right face
+		1.0, -1.0, -1.0,
+		1.0, 1.0, -1.0,
+		1.0, 1.0, 1.0,
+		1.0, -1.0, 1.0,
+		// Left face
+		-1.0, -1.0, -1.0,
+		-1.0, -1.0, 1.0,
+		-1.0, 1.0, 1.0,
+		-1.0, 1.0, -1.0
+	];
+	
+	//vertex normal data
+	const normals = [
+		// Front
+		0.0, 0.0, 1.0,
+		0.0, 0.0, 1.0,
+		0.0, 0.0, 1.0,
+		0.0, 0.0, 1.0,
+		// Back
+		0.0, 0.0, -1.0,
+		0.0, 0.0, -1.0,
+		0.0, 0.0, -1.0,
+		0.0, 0.0, -1.0,
+		// Top
+		0.0, 1.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 1.0, 0.0,
+		// Bottom
+		0.0, -1.0, 0.0,
+		0.0, -1.0, 0.0,
+		0.0, -1.0, 0.0,
+		0.0, -1.0, 0.0,
+		// Right
+		1.0, 0.0, 0.0,
+		1.0, 0.0, 0.0,
+		1.0, 0.0, 0.0,
+		1.0, 0.0, 0.0,
+		// Left
+		-1.0, 0.0, 0.0,
+		-1.0, 0.0, 0.0,
+		-1.0, 0.0, 0.0,
+		-1.0, 0.0, 0.0
+	];
+	
+	//vertex texcoord data
+	const texcoords = [
+		// Front
+		0.25, 0.5,
+		0.25, 0.25,
+		0.0, 0.25,
+		0.0, 0.5,
+		// Back
+		0.5, 0.5,
+		0.75, 0.5,
+		0.75, 0.25,
+		0.5, 0.25,
+		// Top
+		0.75, 0.5,
+		1.0, 0.5,
+		1.0, 0.25,
+		0.75, 0.25,
+		// Bottom
+		0.5, 0.5,
+		0.5, 0.25,
+		0.25, 0.25,
+		0.25, 0.5,
+		// Right
+		0.5, 0.25,
+		0.5, 0.0,
+		0.25, 0.0,
+		0.25, 0.25,
+		// Left
+		0.5, 0.5,
+		0.25, 0.5,
+		0.25, 0.75,
+		0.5, 0.75
+	];
+	
+	const indices = [
+		0, 1, 2, 
+		0, 2, 3, 
+		4, 5, 6, 
+		4, 6, 7, 
+		8, 9, 10, 
+		8, 10, 11, 
+		12, 13, 14, 
+		12, 14, 15, 
+		16, 17, 18, 
+		16, 18, 19, 
+		20, 21, 22, 
+		20, 22, 23
+	];
+	
+	//set position buffer as current vertex buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, position_buffer);
+	//send vertex data to current vertex buffer
+	gl.bufferData(
+		gl.ARRAY_BUFFER, 
+		new Float32Array(positions), 
+		gl.STATIC_DRAW
+	);
+	//set normal buffer as current vertex buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+	//send vertex data to current vertex buffer
+	gl.bufferData(
+		gl.ARRAY_BUFFER, 
+		new Float32Array(normals), 
+		gl.STATIC_DRAW
+	);
+	//set texcoord buffer as current vertex buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, texcoord_buffer);
+	//send color data to current vertex buffer
+	gl.bufferData(
+		gl.ARRAY_BUFFER, 
+		new Float32Array(texcoords), 
+		gl.STATIC_DRAW
+	);
+	//set index buffer as current index buffer
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+	//send index data to current index buffer
+	gl.bufferData(
+		gl.ELEMENT_ARRAY_BUFFER, 
+		new Uint16Array(indices), 
+		gl.STATIC_DRAW
+	);
+	
+	//return dictionary of created buffers
+	return {
+		position: position_buffer, 
+		normal: normal_buffer, 
+		texcoord: texcoord_buffer, 
+		indices: index_buffer
+	};
+}
+
+function load_tex(gl, path) {
+	//create texture object
+	const tex_obj = gl.createTexture();
+	//set texture object as current texture
+	gl.bindTexture(gl.TEXTURE_2D, tex_obj);
+	
+	//setup placeholder texture data
+	const lod = 0;							//base LoD
+	const internal_format = gl.RGBA;		//use RGBA
+	const width = 1;						//px width
+	const height = 1;						//px height
+	const border = 0;						//px border
+	const source_format = gl.RGBA;			//texel format same as image format
+	const source_type = gl.UNSIGNED_BYTE;	//texel datatype
+	//placeholder texture pixel data
+	var pixels = new Uint8Array([127, 127, 127, 255]);
+	//load placeholder texture data into current texture
+	gl.texImage2D(
+		gl.TEXTURE_2D, 
+		lod, 
+		internal_format, 
+		width, 
+		height, 
+		border, 
+		source_format, 
+		source_type, 
+		pixels
+	);
+	
+	//create image object
+	const img_obj = new Image();
+	//define checks to perform on image once loaded
+	img_obj.onload = function() {
+		//set texture object as current texture
+		gl.bindTexture(gl.TEXTURE_2D, tex_obj);
+		//load image data into current texture
+		gl.texImage2D(
+			gl.TEXTURE_2D, 
+			lod, 
+			internal_format, 
+			source_format, 
+			source_type, 
+			img_obj
+		);
+		
+		//check if image dimensions are powers of 2
+		if (is_pow_of_2(img_obj.width) && is_pow_of_2(img_obj.height)) {
+			//generate mipmap for current texture
+			gl.generateMipmap(gl.TEXTURE_2D);
+		} else {
+			//set irregularly dimensioned texture settings for current texture
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		}
+	};
+	//use error texture if image load fails
+	img_obj.onerror = function() { 
+		console.log("failed to load image: " + path); 
+		gl.texImage2D(
+			gl.TEXTURE_2D, 
+			lod, 
+			internal_format, 
+			2, 
+			2, 
+			border, 
+			source_format, 
+			source_type, 
+			new Uint8Array([
+				255, 0, 255, 255, 
+				0, 0, 0, 255, 
+				0, 0, 0, 255, 
+				255, 0, 255, 255
+			])
+		);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	};
+	//load image data into image object from path
+	img_obj.src = path;
+	
+	return tex_obj;	
+}
+
+function draw_scene(gl, program_info, buffers, tex, delta_time) {
+	gl.clearColor(0.0, 0.0, 0.0, 1.0);	//background clear color
+	gl.clearDepth(1.0);					//clear everything when clearing
+	gl.enable(gl.DEPTH_TEST);			//consider depth when drawing
+	gl.enable(gl.CULL_FACE);			//enable (back)face culling
+	gl.depthFunc(gl.LEQUAL);			//near things obscure far things
+	
+	//clear canvas according to some bitwise-OR'd constants
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	
+	const fov = 45 * Math.PI / 180;		//field of view in radians
+	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+	const zNear = 0.1;					//minimum draw depth
+	const zFar = 100.0;					//maximum draw depth
+	
+	//create empty projection matrix
+	const projection_matrix = mat4.create();	
+	//populate projection matrix
+	mat4.perspective(projection_matrix, fov, aspect, zNear, zFar);
+	
+	//create centered model view matrix
+	const model_view_matrix = mat4.create();
+	//translate model view matrix to desired draw position
+	mat4.translate(
+		model_view_matrix, 
+		model_view_matrix, 
+		[-0.0, 0.0, -6.0]
+	);
+	//rotate cube by rotating drawing reference frame about z-axis
+	mat4.rotate(
+		model_view_matrix, 
+		model_view_matrix, 
+		cube_rotation, 
+		[0, 0, 1]
+	);
+	//also rotate about (0.7x)(1.0y)-axis at relative rate of 0.7
+	mat4.rotate(
+		model_view_matrix, 
+		model_view_matrix, 
+		cube_rotation * 0.7, 
+		[0.7, 1, 0]
+	);
+	
+	//create normal matrix
+	const normal_matrix = mat4.create();
+	//do some black magic i guess
+	mat4.invert(normal_matrix, model_view_matrix);
+	mat4.transpose(normal_matrix, normal_matrix);
+
+	//position buffer -> vertex position attribute instructions
+	{
+		const vals_per_vert = 3;	//num of values used to represent a vertex
+		const type = gl.FLOAT;		//data type of those values
+		const normalize = false;	//leave each value as is
+		const stride = 0;			//autocalc value set sizes from 1st 2 params
+		const offset = 0;			//no buffer read offset
+		//set position buffer as current vertex buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+		//connect current vertex buffer to vertex shader attribute
+		gl.vertexAttribPointer(
+			program_info.attrib_locations.vertex_position, 
+			vals_per_vert, 
+			type, 
+			normalize, 
+			stride, 
+			offset
+		);
+		//enable attribute because its disabled by default
+		gl.enableVertexAttribArray(program_info.attrib_locations.vertex_position);
+	}
+	
+	//normal buffer -> vertex normal attribute instructions
+	{
+		const vals_per_vert = 3;	//num of values used to represent a vertex
+		const type = gl.FLOAT;		//data type of those values
+		const normalize = false;	//leave each value as is
+		const stride = 0;			//autocalc value set sizes from 1st 2 params
+		const offset = 0;			//no buffer read offset
+		//set position buffer as current vertex buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+		//connect current vertex buffer to vertex shader attribute
+		gl.vertexAttribPointer(
+			program_info.attrib_locations.vertex_normal, 
+			vals_per_vert, 
+			type, 
+			normalize, 
+			stride, 
+			offset
+		);
+		//enable attribute because its disabled by default
+		gl.enableVertexAttribArray(program_info.attrib_locations.vertex_normal);
+	}
+	
+	//texcoord buffer -> vertex texture coordinate attribute instructions
+	{
+		const vals_per_vert = 2;	//num of values used to represent a texcoord set
+		const type = gl.FLOAT;		//data type of those values
+		const normalize = false;	//leave each value as is
+		const stride = 0;			//autocalc value set sizes from 1st 2 params
+		const offset = 0;			//no buffer read offset
+		//set texcoord buffer as current vertex buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texcoord);
+		//connect current vertex buffer to vertex shader attribute
+		gl.vertexAttribPointer(
+			program_info.attrib_locations.texture_coord, 
+			vals_per_vert, 
+			type, 
+			normalize, 
+			stride, 
+			offset
+		);
+		//enable attribute because its disabled by default
+		gl.enableVertexAttribArray(program_info.attrib_locations.texture_coord);
+	}
+	
+	//set index buffer as current index buffer
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+	
+	//set shader program as the current program
+	gl.useProgram(program_info.program);
+	
+	//connect shader uniforms to some of our consts
+	gl.uniformMatrix4fv(
+		program_info.uniform_locations.projection_matrix, 
+		false, 
+		projection_matrix
+	);
+	gl.uniformMatrix4fv(
+		program_info.uniform_locations.model_view_matrix, 
+		false, 
+		model_view_matrix
+	);
+	gl.uniformMatrix4fv(
+		program_info.uniform_locations.normal_matrix, 
+		false, 
+		normal_matrix
+	);
+	
+	//use texture unit 0
+	gl.activeTexture(gl.TEXTURE0);
+	//set tex as current texture and connect it to current texture unit
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+	//connect texture unit 0 to fragment shader sampler uniform
+	gl.uniform1i(program_info.uniform_locations.u_sampler, 0);
+	
+	{
+		const vertex_count = 36;		//read 36 vertices
+		const type = gl.UNSIGNED_SHORT;	//index datatype
+		const offset = 0;				//no read offset
+		gl.drawElements(gl.TRIANGLES, vertex_count, type, offset);
+	}
+	
+	//update cube rotation control variable
+	cube_rotation += delta_time;
+}
+
+function is_pow_of_2(val) {
+	//e.g. 0b100 & 0b011 = 0b000
+	return (val & (val - 1)) == 0;
+}
+</script>
+
+<script id="script_vert" type="unofficial_webgl_shader_type/vertex_shader">
+attribute vec4 aVertexPosition;
+attribute vec3 aVertexNormal;
+attribute vec2 aTextureCoord;
+
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+uniform mat4 uNormalMatrix;
+
+varying highp vec2 vTextureCoord;
+varying highp vec3 vLighting;
+
+void main() {
+  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+  vTextureCoord = aTextureCoord;
+  
+  //apply lighting
+  highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+  highp vec3 directionalLightColor = vec3(0.9, 0.9, 0.9);
+  highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+  
+  highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+  
+  highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+  vLighting = ambientLight + (directionalLightColor * directional);
+}
+</script>
+
+<script id="script_frag" type="unofficial_webgl_shader_type/fragment_shader">
+varying highp vec2 vTextureCoord;
+varying highp vec3 vLighting;
+
+uniform sampler2D uSampler;
+
+void main() {
+	highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+	gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+}
+</script>
+
+<script id="dae_cube" type="model/vnd.collada+xml">
+
+</script>
 
 <!-- hopefully your text editor supports code folding -->
 <script id="script_glmatrix" type="text/javascript">
@@ -7618,584 +8199,5 @@ var forEach = exports.forEach = function () {
 });
 </script>
 <!-- the nightmare is over -->
-
-<script id="script_vert" type="unofficial_webgl_shader_type/vertex_shader">
-attribute vec4 aVertexPosition;
-attribute vec3 aVertexNormal;
-attribute vec2 aTextureCoord;
-
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
-uniform mat4 uNormalMatrix;
-
-varying highp vec2 vTextureCoord;
-varying highp vec3 vLighting;
-
-void main() {
-  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-  vTextureCoord = aTextureCoord;
-  
-  //apply lighting
-  highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-  highp vec3 directionalLightColor = vec3(0.9, 0.9, 0.9);
-  highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
-  
-  highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
-  
-  highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-  vLighting = ambientLight + (directionalLightColor * directional);
-}
-</script>
-
-<script id="script_frag" type="unofficial_webgl_shader_type/fragment_shader">
-varying highp vec2 vTextureCoord;
-varying highp vec3 vLighting;
-
-uniform sampler2D uSampler;
-
-void main() {
-	highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
-	gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
-}
-</script>
-
-<script id="script_main" type="text/javascript">
-//variable to control the rotation of the square
-var cube_rotation = 0.0;
-
-function is_pow_of_2(val) {
-	//e.g. 0b100 & 0b011 = 0b000
-	return (val & (val - 1)) == 0;
-}
-
-function compile_shader(gl, id) {
-	//find shader by html element id
-	var shader_script = document.getElementById(id);
-	//validate shader was found
-	if (!shader_script) {
-		return null;
-	}
-	
-	//make shader obj based on shader type
-	var shader_obj = null;
-	if (shader_script.type.endsWith("vertex_shader")) {
-		shader_obj = gl.createShader(gl.VERTEX_SHADER);
-	} else if (shader_script.type.endsWith("fragment_shader")) {
-		shader_obj = gl.createShader(gl.FRAGMENT_SHADER);	
-	}
-	
-	//get shader source and compile
-	gl.shaderSource(shader_obj, shader_script.innerHTML);
-	gl.compileShader(shader_obj);
-	
-	//alert on shader compile fail
-	if (!gl.getShaderParameter(shader_obj, gl.COMPILE_STATUS)) {
-		alert("error compiling shader of type: \n" + 
-			shader_script.type + 
-			"\n\n\nsee info log below: \n\n" + 
-			gl.getShaderInfoLog(shader_obj));
-		return null;
-	}
-	
-	//return compiled shader
-	return shader_obj;
-}
-
-function init_shader_program(gl, vert_id, frag_id) {
-	//compile vertex and fragment shaders
-	const vert = compile_shader(gl, vert_id);
-	const frag = compile_shader(gl, frag_id);
-	
-	//create shader_program
-	const shader_program = gl.createProgram();
-	//attach vertex and fragment shaders to shader program
-	gl.attachShader(shader_program, vert);
-	gl.attachShader(shader_program, frag);
-	//link shader program
-	gl.linkProgram(shader_program);
-	
-	//alert on shader program link fail
-	if (!gl.getProgramParameter(shader_program, gl.LINK_STATUS)) {
-		alert(
-			"error linking shader program. " + 
-			"\n\n\nsee info log below: \n\n" + 
-			gl.getProgramInfoLog(shader_program)
-		);
-		return null;
-	}
-	
-	//return linked shader program
-	return shader_program;
-}
-
-function init_buffers(gl) {
-	//create buffers
-	const position_buffer = gl.createBuffer();
-	const normal_buffer = gl.createBuffer();
-	const texcoord_buffer = gl.createBuffer();
-	const index_buffer = gl.createBuffer();
-	
-	//vertex position data
-	const positions = [
-		// Front face
-		-1.0, -1.0, 1.0,
-		1.0, -1.0, 1.0,
-		1.0, 1.0, 1.0,
-		-1.0, 1.0, 1.0,
-		// Back face
-		-1.0, -1.0, -1.0,
-		-1.0, 1.0, -1.0,
-		1.0, 1.0, -1.0,
-		1.0, -1.0, -1.0,
-		// Top face
-		-1.0, 1.0, -1.0,
-		-1.0, 1.0, 1.0,
-		1.0, 1.0, 1.0,
-		1.0, 1.0, -1.0,
-		// Bottom face
-		-1.0, -1.0, -1.0,
-		1.0, -1.0, -1.0,
-		1.0, -1.0, 1.0,
-		-1.0, -1.0, 1.0,
-		// Right face
-		1.0, -1.0, -1.0,
-		1.0, 1.0, -1.0,
-		1.0, 1.0, 1.0,
-		1.0, -1.0, 1.0,
-		// Left face
-		-1.0, -1.0, -1.0,
-		-1.0, -1.0, 1.0,
-		-1.0, 1.0, 1.0,
-		-1.0, 1.0, -1.0
-	];
-	
-	//vertex normal data
-	const normals = [
-		// Front
-		0.0, 0.0, 1.0,
-		0.0, 0.0, 1.0,
-		0.0, 0.0, 1.0,
-		0.0, 0.0, 1.0,
-		// Back
-		0.0, 0.0, -1.0,
-		0.0, 0.0, -1.0,
-		0.0, 0.0, -1.0,
-		0.0, 0.0, -1.0,
-		// Top
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		// Bottom
-		0.0, -1.0, 0.0,
-		0.0, -1.0, 0.0,
-		0.0, -1.0, 0.0,
-		0.0, -1.0, 0.0,
-		// Right
-		1.0, 0.0, 0.0,
-		1.0, 0.0, 0.0,
-		1.0, 0.0, 0.0,
-		1.0, 0.0, 0.0,
-		// Left
-		-1.0, 0.0, 0.0,
-		-1.0, 0.0, 0.0,
-		-1.0, 0.0, 0.0,
-		-1.0, 0.0, 0.0
-	];
-	
-	//vertex texcoord data
-	const texcoords = [
-		// Front
-		0.25, 0.5,
-		0.25, 0.25,
-		0.0, 0.25,
-		0.0, 0.5,
-		// Back
-		0.5, 0.5,
-		0.75, 0.5,
-		0.75, 0.25,
-		0.5, 0.25,
-		// Top
-		0.75, 0.5,
-		1.0, 0.5,
-		1.0, 0.25,
-		0.75, 0.25,
-		// Bottom
-		0.5, 0.5,
-		0.5, 0.25,
-		0.25, 0.25,
-		0.25, 0.5,
-		// Right
-		0.5, 0.25,
-		0.5, 0.0,
-		0.25, 0.0,
-		0.25, 0.25,
-		// Left
-		0.5, 0.5,
-		0.25, 0.5,
-		0.25, 0.75,
-		0.5, 0.75
-	];
-	
-	const indices = [
-		0, 1, 2, 
-		0, 2, 3, 
-		4, 5, 6, 
-		4, 6, 7, 
-		8, 9, 10, 
-		8, 10, 11, 
-		12, 13, 14, 
-		12, 14, 15, 
-		16, 17, 18, 
-		16, 18, 19, 
-		20, 21, 22, 
-		20, 22, 23
-	];
-	
-	//set position buffer as current vertex buffer
-	gl.bindBuffer(gl.ARRAY_BUFFER, position_buffer);
-	//send vertex data to current vertex buffer
-	gl.bufferData(
-		gl.ARRAY_BUFFER, 
-		new Float32Array(positions), 
-		gl.STATIC_DRAW
-	);
-	//set normal buffer as current vertex buffer
-	gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
-	//send vertex data to current vertex buffer
-	gl.bufferData(
-		gl.ARRAY_BUFFER, 
-		new Float32Array(normals), 
-		gl.STATIC_DRAW
-	);
-	//set texcoord buffer as current vertex buffer
-	gl.bindBuffer(gl.ARRAY_BUFFER, texcoord_buffer);
-	//send color data to current vertex buffer
-	gl.bufferData(
-		gl.ARRAY_BUFFER, 
-		new Float32Array(texcoords), 
-		gl.STATIC_DRAW
-	);
-	//set index buffer as current index buffer
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
-	//send index data to current index buffer
-	gl.bufferData(
-		gl.ELEMENT_ARRAY_BUFFER, 
-		new Uint16Array(indices), 
-		gl.STATIC_DRAW
-	);
-	
-	//return dictionary of created buffers
-	return {
-		position: position_buffer, 
-		normal: normal_buffer, 
-		texcoord: texcoord_buffer, 
-		indices: index_buffer
-	};
-}
-
-function load_tex(gl, path) {
-	//create texture object
-	const tex_obj = gl.createTexture();
-	//set texture object as current texture
-	gl.bindTexture(gl.TEXTURE_2D, tex_obj);
-	
-	//setup placeholder texture data
-	const lod = 0;							//base LoD
-	const internal_format = gl.RGBA;		//use RGBA
-	const width = 1;						//px width
-	const height = 1;						//px height
-	const border = 0;						//px border
-	const source_format = gl.RGBA;			//texel format same as image format
-	const source_type = gl.UNSIGNED_BYTE;	//texel datatype
-	//placeholder texture pixel data
-	var pixels = new Uint8Array([127, 127, 127, 255]);
-	//load placeholder texture data into current texture
-	gl.texImage2D(
-		gl.TEXTURE_2D, 
-		lod, 
-		internal_format, 
-		width, 
-		height, 
-		border, 
-		source_format, 
-		source_type, 
-		pixels
-	);
-	
-	//create image object
-	const img_obj = new Image();
-	//define checks to perform on image once loaded
-	img_obj.onload = function() {
-		//set texture object as current texture
-		gl.bindTexture(gl.TEXTURE_2D, tex_obj);
-		//load image data into current texture
-		gl.texImage2D(
-			gl.TEXTURE_2D, 
-			lod, 
-			internal_format, 
-			source_format, 
-			source_type, 
-			img_obj
-		);
-		
-		//check if image dimensions are powers of 2
-		if (is_pow_of_2(img_obj.width) && is_pow_of_2(img_obj.height)) {
-			//generate mipmap for current texture
-			gl.generateMipmap(gl.TEXTURE_2D);
-		} else {
-			//set irregularly dimensioned texture settings for current texture
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		}
-	};
-	//use error texture if image load fails
-	img_obj.onerror = function() { 
-		console.log("failed to load image: " + path); 
-		gl.texImage2D(
-			gl.TEXTURE_2D, 
-			lod, 
-			internal_format, 
-			2, 
-			2, 
-			border, 
-			source_format, 
-			source_type, 
-			new Uint8Array([
-				255, 0, 255, 255, 
-				0, 0, 0, 255, 
-				0, 0, 0, 255, 
-				255, 0, 255, 255
-			])
-		);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	};
-	//load image data into image object from path
-	img_obj.src = path;
-	
-	return tex_obj;	
-}
-
-function draw_scene(gl, program_info, buffers, tex, delta_time) {
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);	//background clear color
-	gl.clearDepth(1.0);					//clear everything when clearing
-	gl.enable(gl.DEPTH_TEST);			//consider depth when drawing
-	gl.enable(gl.CULL_FACE);			//enable (back)face culling
-	gl.depthFunc(gl.LEQUAL);			//near things obscure far things
-	
-	//clear canvas according to some bitwise-OR'd constants
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	
-	const fov = 45 * Math.PI / 180;		//field of view in radians
-	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-	const zNear = 0.1;					//minimum draw depth
-	const zFar = 100.0;					//maximum draw depth
-	
-	//create empty projection matrix
-	const projection_matrix = mat4.create();	
-	//populate projection matrix
-	mat4.perspective(projection_matrix, fov, aspect, zNear, zFar);
-	
-	//create centered model view matrix
-	const model_view_matrix = mat4.create();
-	//translate model view matrix to desired draw position
-	mat4.translate(
-		model_view_matrix, 
-		model_view_matrix, 
-		[-0.0, 0.0, -6.0]
-	);
-	//rotate cube by rotating drawing reference frame about z-axis
-	mat4.rotate(
-		model_view_matrix, 
-		model_view_matrix, 
-		cube_rotation, 
-		[0, 0, 1]
-	);
-	//also rotate about (0.7x)(1.0y)-axis at relative rate of 0.7
-	mat4.rotate(
-		model_view_matrix, 
-		model_view_matrix, 
-		cube_rotation * 0.7, 
-		[0.7, 1, 0]
-	);
-	
-	//create normal matrix
-	const normal_matrix = mat4.create();
-	//do some black magic i guess
-	mat4.invert(normal_matrix, model_view_matrix);
-	mat4.transpose(normal_matrix, normal_matrix);
-
-	//position buffer -> vertex position attribute instructions
-	{
-		const vals_per_vert = 3;	//num of values used to represent a vertex
-		const type = gl.FLOAT;		//data type of those values
-		const normalize = false;	//leave each value as is
-		const stride = 0;			//autocalc value set sizes from 1st 2 params
-		const offset = 0;			//no buffer read offset
-		//set position buffer as current vertex buffer
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-		//connect current vertex buffer to vertex shader attribute
-		gl.vertexAttribPointer(
-			program_info.attrib_locations.vertex_position, 
-			vals_per_vert, 
-			type, 
-			normalize, 
-			stride, 
-			offset
-		);
-		//enable attribute because its disabled by default
-		gl.enableVertexAttribArray(program_info.attrib_locations.vertex_position);
-	}
-	
-	//normal buffer -> vertex normal attribute instructions
-	{
-		const vals_per_vert = 3;	//num of values used to represent a vertex
-		const type = gl.FLOAT;		//data type of those values
-		const normalize = false;	//leave each value as is
-		const stride = 0;			//autocalc value set sizes from 1st 2 params
-		const offset = 0;			//no buffer read offset
-		//set position buffer as current vertex buffer
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
-		//connect current vertex buffer to vertex shader attribute
-		gl.vertexAttribPointer(
-			program_info.attrib_locations.vertex_normal, 
-			vals_per_vert, 
-			type, 
-			normalize, 
-			stride, 
-			offset
-		);
-		//enable attribute because its disabled by default
-		gl.enableVertexAttribArray(program_info.attrib_locations.vertex_normal);
-	}
-	
-	//texcoord buffer -> vertex texture coordinate attribute instructions
-	{
-		const vals_per_vert = 2;	//num of values used to represent a texcoord set
-		const type = gl.FLOAT;		//data type of those values
-		const normalize = false;	//leave each value as is
-		const stride = 0;			//autocalc value set sizes from 1st 2 params
-		const offset = 0;			//no buffer read offset
-		//set texcoord buffer as current vertex buffer
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texcoord);
-		//connect current vertex buffer to vertex shader attribute
-		gl.vertexAttribPointer(
-			program_info.attrib_locations.texture_coord, 
-			vals_per_vert, 
-			type, 
-			normalize, 
-			stride, 
-			offset
-		);
-		//enable attribute because its disabled by default
-		gl.enableVertexAttribArray(program_info.attrib_locations.texture_coord);
-	}
-	
-	//set index buffer as current index buffer
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-	
-	//set shader program as the current program
-	gl.useProgram(program_info.program);
-	
-	//connect shader uniforms to some of our consts
-	gl.uniformMatrix4fv(
-		program_info.uniform_locations.projection_matrix, 
-		false, 
-		projection_matrix
-	);
-	gl.uniformMatrix4fv(
-		program_info.uniform_locations.model_view_matrix, 
-		false, 
-		model_view_matrix
-	);
-	gl.uniformMatrix4fv(
-		program_info.uniform_locations.normal_matrix, 
-		false, 
-		normal_matrix
-	);
-	
-	//use texture unit 0
-	gl.activeTexture(gl.TEXTURE0);
-	//set tex as current texture and connect it to current texture unit
-	gl.bindTexture(gl.TEXTURE_2D, tex);
-	//connect texture unit 0 to fragment shader sampler uniform
-	gl.uniform1i(program_info.uniform_locations.u_sampler, 0);
-	
-	{
-		const vertex_count = 36;		//read 36 vertices
-		const type = gl.UNSIGNED_SHORT;	//index datatype
-		const offset = 0;				//no read offset
-		gl.drawElements(gl.TRIANGLES, vertex_count, type, offset);
-	}
-	
-	//update cube rotation control variable
-	cube_rotation += delta_time;
-}
-
-function main() {
-	//find canvas and assign to const
-	const canvas = document.querySelector("#gl_canvas");
-	//init gl context and disable antialiasing
-	const gl = canvas.getContext("webgl", {antialias: false});
-	//alert on init fail
-	if (!gl) {
-		alert("WebGL init failed.");
-		return;
-	}
-	//enable face culling which defaults to backface culling
-	
-	//fps counter stuff
-	const fps_counter = document.getElementById("fps_counter");
-	
-	//create shader program
-	const shader_program = init_shader_program(gl, "script_vert", "script_frag");
-	//locate shader program info
-	const program_info = {
-		program: shader_program, 
-		attrib_locations: {
-			vertex_position: gl.getAttribLocation(shader_program, "aVertexPosition"), 
-			vertex_normal: gl.getAttribLocation(shader_program, "aVertexNormal"), 
-			texture_coord: gl.getAttribLocation(shader_program, "aTextureCoord")
-		}, 
-		uniform_locations: {
-			projection_matrix: gl.getUniformLocation(shader_program, "uProjectionMatrix"), 
-			model_view_matrix: gl.getUniformLocation(shader_program, "uModelViewMatrix"), 
-			normal_matrix: gl.getUniformLocation(shader_program, "uNormalMatrix"), 
-			u_sampler: gl.getUniformLocation(shader_program, "uSampler")
-		}
-	};
-	
-	//create dictionary of buffers
-	const buffers = init_buffers(gl);
-	
-	//load texture
-	const tex = load_tex(gl, "media/texcoord_test_2.png");
-	
-	//variable for calculating delta time
-	var prev_time = 0.0;
-	//define render loop
-	function render(curr_time) {
-		//millseconds to seconds
-		curr_time *= 0.001;
-		
-		//calculate delta time
-		const delta_time = curr_time - prev_time;
-		prev_time = curr_time;
-		//update fps counter using delta time
-		fps_counter.innerHTML = 1 / delta_time;
-		
-		//draw the scene
-		draw_scene(gl, program_info, buffers, tex, delta_time);
-		
-		//loop
-		requestAnimationFrame(render);
-	}
-	//start render loop
-	requestAnimationFrame(render);	
-}
-</script>
 </body>
-
 </html>
