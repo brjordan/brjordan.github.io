@@ -758,16 +758,19 @@ function main() {
 			projection_matrix: gl.getUniformLocation(shader_program, "uProjectionMatrix"), 
 			model_view_matrix: gl.getUniformLocation(shader_program, "uModelViewMatrix"), 
 			normal_matrix: gl.getUniformLocation(shader_program, "uNormalMatrix"), 
-			u_sampler: gl.getUniformLocation(shader_program, "uSampler")
+			u_diffuse_sampler: gl.getUniformLocation(shader_program, "uDiffuseSampler"), 
+			u_normal_sampler: gl.getUniformLocation(shader_program, "uNormalSampler")
 		}
 	};
 	
 	//create dictionary of buffers
 	const buffers = init_buffers(gl);
 	
-	//load texture
-	const tex = load_tex(gl, "media/texcoord_test_2.png");
-	
+	//load textures
+	const tex = [];
+	tex[0] = load_tex(gl, "media/texcoord_test_2.png");
+	tex[1] = load_tex(gl, "media/normal_map_2.png");
+
 	//variable for calculating delta time
 	var prev_time = 0.0;
 	//define render loop
@@ -1241,10 +1244,17 @@ function draw_scene(gl, program_info, buffers, tex, delta_time) {
 	
 	//use texture unit 0
 	gl.activeTexture(gl.TEXTURE0);
-	//set tex as current texture and connect it to current texture unit
-	gl.bindTexture(gl.TEXTURE_2D, tex);
+	//set tex[0] as current texture and connect it to current texture unit
+	gl.bindTexture(gl.TEXTURE_2D, tex[0]);
 	//connect texture unit 0 to fragment shader sampler uniform
-	gl.uniform1i(program_info.uniform_locations.u_sampler, 0);
+	gl.uniform1i(program_info.uniform_locations.u_diffuse_sampler, 0);
+
+	//use texture unit 1
+	gl.activeTexture(gl.TEXTURE1);
+	//set tex[1] as current texture and connect it to current texture unit
+	gl.bindTexture(gl.TEXTURE_2D, tex[1]);
+	//connect texture unit 1 to fragment shader sampler uniform
+	gl.uniform1i(program_info.uniform_locations.u_normal_sampler, 1);
 	
 	{
 		const vertex_count = 36;		//read 36 vertices
@@ -1273,33 +1283,35 @@ uniform mat4 uProjectionMatrix;
 uniform mat4 uNormalMatrix;
 
 varying highp vec2 vTextureCoord;
-varying highp vec3 vLighting;
+varying highp vec4 vTransformedNormal;
 
 void main() {
-  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-  vTextureCoord = aTextureCoord;
-  
-  //apply lighting
-  highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-  highp vec3 directionalLightColor = vec3(0.9, 0.9, 0.9);
-  highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
-  
-  highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
-  
-  highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-  vLighting = ambientLight + (directionalLightColor * directional);
+	gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+
+	vTextureCoord = aTextureCoord;
+	vTransformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
 }
 </script>
 
 <script id="script_frag" type="unofficial_webgl_shader_type/fragment_shader">
 varying highp vec2 vTextureCoord;
-varying highp vec3 vLighting;
+varying highp vec4 vTransformedNormal;
 
-uniform sampler2D uSampler;
+uniform sampler2D uDiffuseSampler;
+uniform sampler2D uNormalSampler;
 
 void main() {
-	highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
-	gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+	highp vec4 diffuseColor = texture2D(uNormalSampler, vTextureCoord);
+	highp vec4 normalColor = texture2D(uDiffuseSampler, vTextureCoord);
+	
+	//apply lighting
+	highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+	highp vec3 directionalLightColor = vec3(0.9, 0.9, 0.9);
+	highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+	highp float directional = max(dot((vTransformedNormal.xyz * normalColor.rgb), directionalVector), 0.0);
+	highp vec3 lighting = ambientLight + (directionalLightColor * directional);
+	
+	gl_FragColor = vec4(diffuseColor.rgb * lighting, diffuseColor.a);
 }
 </script>
 
