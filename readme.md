@@ -1,1 +1,1 @@
-[GitHub Pages version.](https://brjordan.github.io)
+[GitHub Pages version](https://brjordan.github.io)
