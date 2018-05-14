@@ -94,8 +94,13 @@ function main() {
 		
 		//update ui
 		var trunc_fps = String(gl_fps).split('.');
+		if (trunc_fps[1]) {
+			trunc_fps[0] = trunc_fps[0] + '.' + trunc_fps[1].substring(0, 1);
+		} else { 
+			trunc_fps[0] += ".0"; 
+		}
 		ui.clearRect(0, 0, ui_canvas.width, ui_canvas.height);
-		ui.strokeText("gl_fps: " + trunc_fps[0] + '.' + trunc_fps[1].substring(0, 1), 10, 40);
+		ui.strokeText("gl_fps: " + trunc_fps[0], 10, 40);
 		
 		render_req = requestAnimationFrame(render);
 	}
