@@ -15,8 +15,9 @@
 <script id="script_main" type="text/javascript">
 //render loop request var
 var render_req;
-//playpause control var
+//draw conditional vars
 var paused = false;
+var no_draw = false;
 //variable to control the rotation of the cube
 var cube_rotation = 0.0;
 
@@ -84,7 +85,7 @@ function main() {
 		const ui_delta_time = now - ui_then;
 		const gl_fps = 1 / gl_delta_time;
 		const ui_fps = 1 / ui_delta_time;
-		if(!paused) { gl_then = now; }
+		if(!no_draw) { gl_then = now; }
 		ui_then = now;
 		
 		//update ui
@@ -98,7 +99,7 @@ function main() {
 		ui.strokeText("gl_fps: " + trunc_fps[0], 10, 40);
 		
 		//update gl
-		if(!paused) {
+		if(!(paused || no_draw)) {
 			//draw the scene
 			draw_scene(gl, program_info, buffers, tex, gl_delta_time);
 		}
