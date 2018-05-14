@@ -74,6 +74,8 @@ function main() {
 	var ui_then = 0.0;
 	//define render loop
 	function render(now) {
+		render_req = requestAnimationFrame(render);
+		
 		//millseconds to seconds
 		now *= 0.001;
 
@@ -82,15 +84,8 @@ function main() {
 		const ui_delta_time = now - ui_then;
 		const gl_fps = 1 / gl_delta_time;
 		const ui_fps = 1 / ui_delta_time;
+		if(!paused) { gl_then = now; }
 		ui_then = now;
-		
-		//update gl
-		if(!paused) {
-			//update gl delta time
-			gl_then = now;
-			//draw the scene
-			draw_scene(gl, program_info, buffers, tex, gl_delta_time);
-		}
 		
 		//update ui
 		var trunc_fps = String(gl_fps).split('.');
@@ -102,7 +97,11 @@ function main() {
 		ui.clearRect(0, 0, ui_canvas.width, ui_canvas.height);
 		ui.strokeText("gl_fps: " + trunc_fps[0], 10, 40);
 		
-		render_req = requestAnimationFrame(render);
+		//update gl
+		if(!paused) {
+			//draw the scene
+			draw_scene(gl, program_info, buffers, tex, gl_delta_time);
+		}
 	}
 	//start render loop
 	render_req = requestAnimationFrame(render);	
