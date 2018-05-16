@@ -21,6 +21,11 @@ var no_draw = false;
 //variable to control the rotation of the cube
 var cube_rotation = 0.0;
 
+history.pushState(null, null, document.URL);
+window.addEventListener('popstate', function () {
+    history.pushState(null, null, document.URL);
+});
+
 function main() {
 	//find gl canvas and assign to const
 	const gl_canvas = document.getElementById("gl_canvas");
