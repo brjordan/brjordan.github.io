@@ -1,120 +1,67 @@
 <!doctype html>
 <html lang="en">
 <head><title>Sound</title><meta charset="utf-8"></head>
-<body onload="main();">
-<canvas id="ui_canvas" width=640 height=270></canvas>
-<p id="foo">?foo?</p>
+<body>
+<p>black keys: S,D,G,H,J<br/>white keys: Z,X,C,V,B,N,M</p>
 <script id="script_main" type="text/javascript">
-var step_interval;
-var ui_canvas;
-var ui;
-var sfx;
-var oscNodes = [];
-var gain_node;
-const root12th2 = Math.pow(2, 1/12);
-const oscs = 2;
-var n = 10;
-const notes = [
-5,5,
-7,7,
-8,8,
-10,10,
-12,12,
-13,13,
-4,4,
-13,13,
-12,12,
-10,10,
-8,8,
-7,7,
-5-12,8,
-7-12,8,
-8-12,12,
-10-12,12,
-12-12,17,
-13-12,17,
-4-12,10,
-13-12,10,
-12-12,16,
-10-12,16,
-8-12,19,
-7-12,19,
-8-12,5+12,
-8-12,7+12,
-12-12,8+12,
-12-12,10+12,
-17-12,12+12,
-17-12,13+12,
-7-12,4+12,
-7-12,13+12,
-10-12,12+12,
-10-12,10+12,
-16-12,8+12,
-16-12,7+12,
-5-12,8+12,
-5-12,8+12,
-17-12,12+12,
-17-12,12+12,
-8-12,17+12,
-8-12,17+12,
-10-12,10+12,
-10-12,10+12,
-12-12,16+12,
-12-12,16+12,
-13-12,19+12,
-13-12,19+12
-];
-var notes_curr = 0;
+var a_ctx = new (window.AudioContext || window.webkitAudioContext)();
+var oscs = [];
+var conv = a_ctx.createConvolver();
+var gain = a_ctx.createGain();
 
+conv.buffer = impulseResponse(4,4,false);
+gain.gain.value = 0.2;
 
-function main() {
-ui_canvas = document.getElementById("ui_canvas");
-ui = ui_canvas.getContext("2d");
-ui.font = "16px Arial";
-ui.strokeStyle = "#00000F";
+conv.connect(gain);
+gain.connect(a_ctx.destination);
 
-sfx = new (window.AudioContext || window.webkitAudioContext)();
-gainNode = sfx.createGain();
+document.addEventListener('keydown', (event) => {
+	const key_code = event.keyCode;
+	if (oscs[key_code]) { return; }
+	var freq;
+	if(key_code == 90) { freq =  261.63; }
+	else if(key_code == 83) { freq =  277.18; }
+	else if(key_code == 88) { freq =  293.66; }
+	else if(key_code == 68) { freq =  311.13; }
+	else if(key_code == 67) { freq =  329.63; }
+	else if(key_code == 86) { freq =  349.23; }
+	else if(key_code == 71) { freq =  369.99; }
+	else if(key_code == 66) { freq =  392.00; }
+	else if(key_code == 72) { freq =  415.30; }
+	else if(key_code == 78) { freq =  440.00; }
+	else if(key_code == 74) { freq =  466.16; }
+	else if(key_code == 77) { freq =  493.88; }
+	else { return; }
+	oscs[key_code] = a_ctx.createOscillator();
+	oscs[key_code].onended = function() { oscs[key_code] = null; };
+	oscs[key_code].type = 'sawtooth';
+	oscs[key_code].frequency.value = freq;
+	oscs[key_code].connect(conv);
+	oscs[key_code].start();
+});
 
-for(var i = 0; i < oscs; i++) {
-oscNodes[i] = sfx.createOscillator();
-oscNodes[i].connect(gainNode);
+document.addEventListener('keyup', (event) => {
+	const key_code = event.keyCode;
+	if (!oscs[key_code]) { return; }
+	oscs[key_code].stop();
+});
 
-oscNodes[i].type = 'triangle';
-oscNodes[i].frequency.value = note_freq_abs(notes[i]);
-oscNodes[i].start();
+function impulseResponse( duration, decay, reverse ) {
+    var sampleRate = a_ctx.sampleRate;
+    var length = sampleRate * duration;
+    var impulse = a_ctx.createBuffer(2, length, sampleRate);
+    var impulseL = impulse.getChannelData(0);
+    var impulseR = impulse.getChannelData(1);
+
+    if (!decay)
+        decay = 2.0;
+    for (var i = 0; i < length; i++){
+      var n = reverse ? length - i : i;
+      impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+      impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+    }
+    return impulse;
 }
-
-gainNode.connect(sfx.destination);
-gainNode.gain.value = 0.25;
-
-step_interval = setInterval(function(){
-	notes_curr = (notes_curr + 1) % (notes.length / oscs);
-	for (var i = 0; i < oscs; i++) {
-	oscNodes[i].frequency.value = note_freq_abs(notes[(notes_curr*oscs) + i]);
-	}
-	}, 100);
-
-function render(now) {
-ui.clearRect(0,0,ui_canvas.width,ui_canvas.height);
-ui.strokeText(now,10,20);
-ui.strokeText("sound should be playing",10,50);
-ui.strokeText("L: A440+"+notes[notes_curr*2],10, 90);
-ui.strokeText("R: A440+"+notes[notes_curr*2+1],130, 90);
-
-requestAnimationFrame(render);
-}
-requestAnimationFrame(render);
-}
-
-function note_freq_abs(steps_from_a440) {
-return 440 * Math.pow(root12th2, steps_from_a440);
-}
-
-function note_freq_rel(steps_from_curr, curr) {
-return curr * Math.pow(root12th2, steps_from_curr);
-}
-
 </script>
 </body>
 </html>
