@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head><title>Sound</title><meta charset="utf-8"></head>
+<body onload="main();">
+<canvas id="ui_canvas" width=640 height=270></canvas>
+<p id="foo">?foo?</p>
+<script id="script_main" type="text/javascript">
+var step_interval;
+var ui_canvas;
+var ui;
+var sfx;
+var oscNodes = [];
+var gain_node;
+const root12th2 = Math.pow(2, 1/12);
+const oscs = 2;
+var n = 10;
+const notes = [
+5,5,
+7,7,
+8,8,
+10,10,
+12,12,
+13,13,
+4,4,
+13,13,
+12,12,
+10,10,
+8,8,
+7,7,
+5-12,8,
+7-12,8,
+8-12,12,
+10-12,12,
+12-12,17,
+13-12,17,
+4-12,10,
+13-12,10,
+12-12,16,
+10-12,16,
+8-12,19,
+7-12,19,
+8-12,5+12,
+8-12,7+12,
+12-12,8+12,
+12-12,10+12,
+17-12,12+12,
+17-12,13+12,
+7-12,4+12,
+7-12,13+12,
+10-12,12+12,
+10-12,10+12,
+16-12,8+12,
+16-12,7+12,
+5-12,8+12,
+5-12,8+12,
+17-12,12+12,
+17-12,12+12,
+8-12,17+12,
+8-12,17+12,
+10-12,10+12,
+10-12,10+12,
+12-12,16+12,
+12-12,16+12,
+13-12,19+12,
+13-12,19+12
+];
+var notes_curr = 0;
+
+
+function main() {
+ui_canvas = document.getElementById("ui_canvas");
+ui = ui_canvas.getContext("2d");
+ui.font = "16px Arial";
+ui.strokeStyle = "#00000F";
+
+sfx = new (window.AudioContext || window.webkitAudioContext)();
+gainNode = sfx.createGain();
+
+for(var i = 0; i < oscs; i++) {
+oscNodes[i] = sfx.createOscillator();
+oscNodes[i].connect(gainNode);
+
+oscNodes[i].type = 'triangle';
+oscNodes[i].frequency.value = note_freq_abs(notes[i]);
+oscNodes[i].start();
+}
+
+gainNode.connect(sfx.destination);
+gainNode.gain.value = 0.25;
+
+step_interval = setInterval(function(){
+	notes_curr = (notes_curr + 1) % (notes.length / oscs);
+	for (var i = 0; i < oscs; i++) {
+	oscNodes[i].frequency.value = note_freq_abs(notes[(notes_curr*oscs) + i]);
+	}
+	}, 100);
+
+function render(now) {
+ui.clearRect(0,0,ui_canvas.width,ui_canvas.height);
+ui.strokeText(now,10,20);
+ui.strokeText("sound should be playing",10,50);
+ui.strokeText("L: A440+"+notes[notes_curr*2],10, 90);
+ui.strokeText("R: A440+"+notes[notes_curr*2+1],130, 90);
+
+requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+}
+
+function note_freq_abs(steps_from_a440) {
+return 440 * Math.pow(root12th2, steps_from_a440);
+}
+
+function note_freq_rel(steps_from_curr, curr) {
+return curr * Math.pow(root12th2, steps_from_curr);
+}
+
+</script>
+</body>
+</html>
