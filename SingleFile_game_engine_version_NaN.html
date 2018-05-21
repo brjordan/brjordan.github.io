@@ -13,11 +13,10 @@
 		style="position:absolute; width:100%; height:100%; left:0; top:0; zIndex:1;"></canvas>
 </div>
 <script id="script_main" type="text/javascript">
-//render loop request var
+//render loop vars
+var target_fps = 120;
 var render_req;
-//draw conditional vars
-var paused = false;
-var no_draw = false;
+var render_timeout;
 //variable to control the rotation of the cube
 var cube_rotation = 0.0;
 
@@ -79,8 +78,11 @@ function main() {
 	var gl_then = 0.0;
 	var ui_then = 0.0;
 	//define render loop
-	function render(now) {
-		render_req = requestAnimationFrame(render);
+	function render() {
+		var now = performance.now();
+		clearTimeout(renderTimeout);
+		renderTimeout = setTimeout(render, 1000/target_fps);
+		//render_req = requestAnimationFrame(render);
 		
 		//millseconds to seconds
 		now *= 0.001;
@@ -90,7 +92,7 @@ function main() {
 		const ui_delta_time = now - ui_then;
 		const gl_fps = 1 / gl_delta_time;
 		const ui_fps = 1 / ui_delta_time;
-		if(!no_draw) { gl_then = now; }
+		gl_then = now;
 		ui_then = now;
 		
 		//update ui
@@ -102,15 +104,14 @@ function main() {
 		}
 		ui.clearRect(0, 0, ui_canvas.width, ui_canvas.height);
 		ui.strokeText("gl_fps: " + trunc_fps[0], 10, 40);
-		
-		//update gl
-		if(!(paused || no_draw)) {
-			//draw the scene
-			draw_scene(gl, program_info, buffers, tex, gl_delta_time);
-		}
+	
+		//draw the scene
+		draw_scene(gl, program_info, buffers, tex, gl_delta_time);
 	}
 	//start render loop
-	render_req = requestAnimationFrame(render);	
+	gl_then, ui_then = performance.now();
+	renderTimeout = setTimeout(render, 1000/target_fps);
+	//render_req = requestAnimationFrame(render);	
 }
 
 function init_shader_program(gl, vert_id, frag_id) {
@@ -486,6 +487,7 @@ function draw_scene(gl, program_info, buffers, tex, delta_time) {
 	const projection_matrix = mat4.create();	
 	//populate projection matrix
 	mat4.perspective(projection_matrix, fov, aspect, zNear, zFar);
+	//mat4.ortho(projection_matrix, -2.5, 2.5, -2.5, 2.5, zNear, zFar);
 	
 	//create centered model view matrix
 	const model_view_matrix = mat4.create();
