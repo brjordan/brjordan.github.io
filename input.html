@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head><title>Input</title><meta charset="utf-8"></head>
+<body>
+<p id="p_keys">?p_keys?</p>
+<script id="script_main" type="text/javascript">
+//don't preventDefault() on these keys
+const noPrevDef = [ "F5", "F12" ];
+
+const keyTable = {
+	'`' : 0, '~' : 0,
+	'1' : 1, '!' : 1,
+	'2' : 2, '@' : 2,
+	'3' : 3, '#' : 3,
+	'4' : 4, '$' : 4,
+	'5' : 5, '%' : 5,
+	'6' : 6, '^' : 6,
+	'7' : 7, '&' : 7,
+	'8' : 8, '*' : 8,
+	'9' : 9, '(' : 9,
+	'0' : 10, ')' : 10,
+	'-' : 11, '_' : 11,
+	'=' : 12, '+' : 12,
+	'q' : 13, 'Q' : 13,
+	'w' : 14, 'W' : 14,
+	'e' : 15, 'E' : 15,
+	'r' : 16, 'R' : 16,
+	't' : 17, 'T' : 17,
+	'y' : 18, 'Y' : 18,
+	'u' : 19, 'U' : 19,
+	'i' : 20, 'I' : 20,
+	'o' : 21, 'O' : 21,
+	'p' : 22, 'P' : 22,
+	'[' : 23, '{' : 23,
+	']' : 24, '}' : 24,
+	'\\' : 25, '|' : 25,
+	'a' : 26, 'A' : 26,
+	's' : 27, 'S' : 27,
+	'd' : 28, 'D' : 28,
+	'f' : 29, 'F' : 29,
+	'g' : 30, 'G' : 30,
+	'h' : 31, 'H' : 31,
+	'j' : 32, 'J' : 32,
+	'k' : 33, 'K' : 33,
+	'l' : 34, 'L' : 34,
+	';' : 35, ':' : 35,
+	"'" : 36, '"' : 36,
+	'z' : 37, 'Z' : 37,
+	'x' : 38, 'X' : 38,
+	'c' : 39, 'C' : 39,
+	'v' : 40, 'V' : 40,
+	'b' : 41, 'B' : 41,
+	'n' : 42, 'N' : 42,
+	'm' : 43, 'M' : 43,
+	',' : 44, '<' : 44,
+	'.' : 45, '>' : 45,
+	'/' : 46, '?' : 46,
+	' ' : 47
+};
+
+var keyArray = [];
+keyArray.length = 48;
+keyArray.fill(false);
+
+document.addEventListener('keydown', (event) => {
+	if (!noPrevDef.includes(event.key)) { event.preventDefault(); }
+	if (event.repeat) { return; }
+	if (!(keyArray[keyTable[event.key]] = true)) { return; };
+	showKeys();
+});
+
+document.addEventListener('keyup', (event) => {
+	if (keyArray[keyTable[event.key]] = false) { return; };
+	showKeys();
+});
+
+function showKeys() {
+	var keyStr = "";
+	for (var i = 0; i < keyArray.length; i++) {
+		if (i==47) {
+			keyStr += keyArray[i] ?
+				'________':
+				'&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp#&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp';
+			keyStr += 'af?c'; 
+		} else {
+			keyStr += keyArray[i] ? '_' : '#';
+			if (i==12) { keyStr += '.B.<br/>T.'; }
+			else if	(i==25) { keyStr += '<br/>C.'; } 
+			else if (i==36) { keyStr += '.E.<br/>.S.'; }
+			else if (i==46) { keyStr += '.S..<br/>cma'; }
+		}
+	}
+	document.getElementById("p_keys").innerHTML = keyStr;	
+}
+</script>
+</body>
+</html>

@@ -4,52 +4,86 @@
 <body>
 <p>black keys: S,D,G,H,J<br/>white keys: Z,X,C,V,B,N,M</p>
 <script id="script_main" type="text/javascript">
-var a_ctx = new (window.AudioContext || window.webkitAudioContext)();
+const root12th2 = Math.pow(2, 1/12);
+const a4hz = 440.00;
+var transpose = 12;
+var aCtx = new (window.AudioContext || window.webkitAudioContext)();
 var oscs = [];
-var conv = a_ctx.createConvolver();
-var gain = a_ctx.createGain();
+var conv = aCtx.createConvolver();
+var gain = aCtx.createGain();
 
-conv.buffer = impulseResponse(4,4,false);
-gain.gain.value = 0.2;
+conv.buffer = impulseResponse(8,128,false);
+gain.gain.value = 0.1;
 
 conv.connect(gain);
-gain.connect(a_ctx.destination);
+gain.connect(aCtx.destination);
 
 document.addEventListener('keydown', (event) => {
-	const key_code = event.keyCode;
-	if (oscs[key_code]) { return; }
-	var freq;
-	if(key_code == 90) { freq =  261.63; }
-	else if(key_code == 83) { freq =  277.18; }
-	else if(key_code == 88) { freq =  293.66; }
-	else if(key_code == 68) { freq =  311.13; }
-	else if(key_code == 67) { freq =  329.63; }
-	else if(key_code == 86) { freq =  349.23; }
-	else if(key_code == 71) { freq =  369.99; }
-	else if(key_code == 66) { freq =  392.00; }
-	else if(key_code == 72) { freq =  415.30; }
-	else if(key_code == 78) { freq =  440.00; }
-	else if(key_code == 74) { freq =  466.16; }
-	else if(key_code == 77) { freq =  493.88; }
+	const keyCode = event.keyCode;
+	if (keyCode == 191 || keyCode == 222) { event.preventDefault(); }
+	if (oscs[keyCode]) { return; }
+	var note = transpose;
+	if(keyCode == 81) { note += -33; }			//q
+	else if(keyCode == 50) { note += -32; }		//2
+	else if(keyCode == 87) { note += -31; }		//w
+	else if(keyCode == 51) { note += -30; }		//3
+	else if(keyCode == 69) { note += -29; }		//e
+	else if(keyCode == 82) { note += -28; }		//r
+	else if(keyCode == 53) { note += -27; }		//5
+	else if(keyCode == 84) { note += -26; }		//t
+	else if(keyCode == 54) { note += -25; }		//6
+	else if(keyCode == 89) { note += -24; }		//y
+	else if(keyCode == 55) { note += -23; }		//7
+	else if(keyCode == 85) { note += -22; }		//u
+	else if(keyCode == 73) { note += -21; }		//i
+	else if(keyCode == 57) { note += -20; }		//9
+	else if(keyCode == 79) { note += -19; }		//o
+	else if(keyCode == 48) { note += -18; }		//0
+	else if(keyCode == 80) { note += -17; }		//p
+	else if(keyCode == 219) { note += -16; }	//[
+	else if(keyCode == 61) { note += -15; }		//=
+	else if(keyCode == 221) { note += -14; }	//]
+	else if(keyCode == 65) { note += -13; }		//a
+	else if(keyCode == 90) { note += -12; }		//z
+	else if(keyCode == 83) { note += -11; }		//s
+	else if(keyCode == 88) { note += -10; }		//x
+	else if(keyCode == 67) { note += -9; }		//c
+	else if(keyCode == 70) { note += -8; }		//f
+	else if(keyCode == 86) { note += -7; }		//v
+	else if(keyCode == 71) { note += -6; }		//g
+	else if(keyCode == 66) { note += -5; }		//b
+	else if(keyCode == 78) { note += -4; }		//n
+	else if(keyCode == 74) { note += -3; }		//j
+	else if(keyCode == 77) { note += -2; }		//m
+	else if(keyCode == 75) { note += -1; }		//k
+	else if(keyCode == 188) { note += 0; }		//,
+	else if(keyCode == 76) { note += 1; }		//l
+	else if(keyCode == 190) { note += 2; }		//.
+	else if(keyCode == 191) { note += 3; }		///
+	else if(keyCode == 222) { note += 4; }		//'
 	else { return; }
-	oscs[key_code] = a_ctx.createOscillator();
-	oscs[key_code].onended = function() { oscs[key_code] = null; };
-	oscs[key_code].type = 'sawtooth';
-	oscs[key_code].frequency.value = freq;
-	oscs[key_code].connect(conv);
-	oscs[key_code].start();
+	oscs[keyCode] = aCtx.createOscillator();
+	oscs[keyCode].onended = function() { oscs[keyCode] = null; };
+	oscs[keyCode].type = 'triangle';
+	oscs[keyCode].frequency.value = noteHz(note);
+	oscs[keyCode].connect(conv);
+	oscs[keyCode].start();
 });
 
 document.addEventListener('keyup', (event) => {
-	const key_code = event.keyCode;
-	if (!oscs[key_code]) { return; }
-	oscs[key_code].stop();
+	const keyCode = event.keyCode;
+	if (!oscs[keyCode]) { return; }
+	oscs[keyCode].stop();
 });
 
+function noteHz(n) {
+	return a4hz * Math.pow(root12th2, n);
+}
+
 function impulseResponse( duration, decay, reverse ) {
-    var sampleRate = a_ctx.sampleRate;
+    var sampleRate = aCtx.sampleRate;
     var length = sampleRate * duration;
-    var impulse = a_ctx.createBuffer(2, length, sampleRate);
+    var impulse = aCtx.createBuffer(2, length, sampleRate);
     var impulseL = impulse.getChannelData(0);
     var impulseR = impulse.getChannelData(1);
 
