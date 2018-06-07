@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head><title>WebRTC Test</title><meta charset="utf-8"></head>
+<body onload="main();" style="background-color:#eee8d5;">
+<script id="script_main" type="text/javascript">
+var pc = new RTCPeerConnection();
+var channel;
+
+function main() {
+	const form_offer = document.createElement("form");
+	form_offer.onsubmit = function() {
+		var formInputs = form_offer.getElementsByTagName("input");
+		for (var i = 0; i < formInputs.length; i++) {
+			if (formInputs[i].type == "text") {
+				var encComp = formInputs[i].value;
+				formInputs[i].value = encComp;
+			}
+		}
+	};
+	document.body.appendChild(form_offer);
+	
+	const p_offer = document.createElement('p');
+	p_offer.innerHTML = "Offer: ";
+	form_offer.appendChild(p_offer);
+	
+	const input_text_offer = document.createElement("input");
+	input_text_offer.type = "text";
+	input_text_offer.name = "offer";
+	input_text_offer.size = "64";
+	form_offer.appendChild(input_text_offer);
+
+	const input_submit_offer = document.createElement("input");
+	input_submit_offer.type = "submit";
+	input_submit_offer.value = "Process Offer";
+	form_offer.appendChild(input_submit_offer);
+	
+	document.body.appendChild(document.createElement("br"));
+	
+	const p_answer = document.createElement('p');
+	p_answer.innerHTML = "Answer: ";
+	document.body.appendChild(p_answer);
+
+	const input_text_answer = document.createElement("input");
+	input_text_answer.type = "text";
+	input_text_answer.name = "answer";
+	input_text_answer.size = "64";
+	input_text_answer.value = "?value?";
+	input_text_answer.readOnly = true;
+	input_text_answer.style = "background-color:lightcyan;";
+	document.body.appendChild(input_text_answer);
+
+	const input_button_answer = document.createElement("input");
+	input_button_answer.type = "button";
+	input_button_answer.value = "Copy Answer";
+	input_button_answer.onclick = function() {
+		input_text_answer.focus();
+		input_text_answer.select();
+		document.execCommand("copy");
+	};
+	document.body.appendChild(input_button_answer);
+	
+	document.body.appendChild(document.createElement("br"));
+	
+	const p_chat = document.createElement('p');
+	document.body.appendChild(p_chat);
+
+	var params = window.location.toString().split('?');
+	if (params.length <= 1) {
+		input_text_answer.value = "No URL params found; offer must be processed to generate answer.";
+	} else {
+		params = params[1].split('&');
+		for (var i = 0; i < params.length; i++) {
+			var keyVal = params[i].split('=');
+			if (keyVal[0] == "offer") {
+				var decComp = keyVal[1].replace(/\+/g, ' ');
+				input_text_offer.value = decodeURIComponent(decComp);
+			}
+		}
+		processOffer(JSON.parse(input_text_offer.value), input_text_answer);
+	}
+	
+	var channel = pc.createDataChannel("data", {negotiated: true, id: 0});
+	channel.onopen = function(event) {
+		channel.send('Hi!');
+	}
+	channel.onmessage = function(event) {
+		p_chat.innerHTML = event.data;
+		console.log(event.data);
+	}
+}
+
+function processOffer(offerSDP, putHere) {
+	pc.setRemoteDescription({ type:"offer", sdp:offerSDP });
+	pc.createAnswer().then(function(answer) {
+		putHere.value = JSON.stringify(answer.sdp);
+		pc.setLocalDescription(answer);
+	});
+}
+
+function setupOffer() {
+	pc.createOffer().then(function(offer) {
+		pc.setLocalDescription(offer);
+	});
+}
+
+function processAnswer(answerSDP) {
+	pc.setRemoteDescription({ type:"answer", sdp:answerSDP });
+}
+</script>
+</body>
+</html>
