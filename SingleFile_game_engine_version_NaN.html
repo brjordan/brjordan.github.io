@@ -45,6 +45,15 @@ function main() {
 	top_div.appendChild(ui_canvas);
 	//init 2d context
 	const ui = ui_canvas.getContext("2d");
+
+	ui_canvas.onclick = function() { 
+		if(document.mozFullScreenElement != null) { 
+			document.mozCancelFullScreen(); 
+		} else { 
+			top_div.mozRequestFullScreen(); 
+		}
+	}
+
 	
 	//fps counter stuff
 	ui.font = "40px Arial";
