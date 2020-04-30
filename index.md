@@ -1,4 +1,4 @@
 ## Welcome, Friend.
 
 
-<a href ="http://math.hws.edu/graphicsbook/index.html">This seems like a pretty good graphics book</a>
+<a href ="https://brjordan.github.io/rotatingMonkeyHead.html">Click to see a rotating monkey head I whipped up with WebGL</a>
