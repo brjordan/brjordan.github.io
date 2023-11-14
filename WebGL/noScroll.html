@@ -1,4 +1,9 @@
-<!DOCTYPE html><html lang="en" style="overflow-x:hidden;user-scalable=no;position:fixed;width:100%;height:100%;margin:0px;"><head><meta charset="utf-8"/><title>RotatingMonkeyHead</title></head><body style="background-color:#000000;overflow-x:hidden;user-scalable=no;position:fixed;width:100%;height:100%;margin:0px;" onload="main()"><script>function main() {
+<!DOCTYPE html>
+<html lang="en" style="overflow:hidden;user-scalable=no;position:fixed;width:100%;height:100%;margin:0px;">
+<head>
+<meta charset="utf-8"/><title>RotatingMonkeyHead</title>
+</head>
+<body style="background-color:#000000;margin:0px;" onload="main()"><script>function main() {
 /* glTF usage philosophy -- eventual goals
 
 	At the end of any given update function, the glTF must be a conformant representation of the scene (sans animation state). For example, the glTF may be in an erroneous state
@@ -637,9 +642,9 @@ const typeSizeDict = {
 	};
 
 const canvas = document.createElement("canvas");
-canvas.width = 1024;
-canvas.height = 1024;
-canvas.style = "image-rendering:optimizeSpeed; margin:auto; position:absolute; width:100vw; height:100vh; max-height:75vw; left:0px; right:0px; top:0px; bottom:0px";
+canvas.width = 512;
+canvas.height = 512;
+canvas.style = "image-rendering:optimizeSpeed; margin:0px;";
 document.body.appendChild(canvas);
 const gl = canvas.getContext("webgl", {alpha:false, antialias:false, premultipliedAlpha:true, preserveDrawingBuffer:false, stencil:false});
 if (gl === null) { alert("weblgl init failed"); return; }
